@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue博客</title>
+  <script src="../static/js/jquery.min.js"></script>
+  <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="../static/js/axios.min.js"></script>
+  <style type="text/css">
+    td{
+      border: 1px solid gray;
+    }
+
+    table{
+      border-collapse: collapse;
+    }
+
+    div#app{
+      margin: 20px auto;
+      width: 400px;
+      padding: 20px;
+    }
+
+    div#pagination{
+      text-align: center;
+      line-height: 100px;
+    }
+    div#pagination a{
+      text-decoration: none;
+    }
+
+    .disableHref{
+      cursor: default;
+      color: #E5E0E0;
+      text-decoration: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <table id="heroListTable">
+      <tr>
+          <td colspan="3">
+              <div id="pagination">
+                <!-- v-bind:class 属性绑定可以简写成:class 
+                v-on:click可简写成@click -->
+                <a :class="{ disableHref: pagination.pageNum==1}" href="#nowhere"
+                @click="jump('first')">[first]</a>
+                <a :class="{ disableHref: !pagination.hasPreviousPage}" href="#nowhere"
+                @click="jump('pre')">[pre]</a>
+                <a :class="{ disableHref: pagination.pageNum==i}" href="#nowhere"
+                v-for="i in pagination.navigatepageNums" @click="jumpByNumber(i)">{{i}}</a>
+                <a :class="{ disableHref: !pagination.hasNextPage}" href="#nowhere"
+                @click="jump('next')">[next]</a>
+                <a :class="{ disableHref: pagination.pageNum==pagination.pages}" href="#nowhere" @click="jump('last')">[last]</a>
+              </div>
+          </td>
+      </tr>
+      <tr>
+        <td>英雄名称</td>
+        <td>血量</td>
+        <td>操作</td>
+    </tr>
+    <tr v-for="hero in heros">
+      <td>{{hero.name}}</td>
+      <td>{{hero.hp}}</td>
+      <td>
+        <a :href="'editHero?id=' + hero.id ">编辑</a>
+        <a href="#nowhere" @click="deleteHero(hero.id)">删除</a>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3">
+          <br>
+          英雄名称:
+          <input type="text" v-model="hero4Add.name"/>
+          <br>
+          血量:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <input type="number" v-model="hero4Add.hp"/>
+          <br>
+          <br>
+          <button type="button" @click="add">
+            增加
+          </button>
+          <br>
+      </td>
+    </tr>
+    </table>
+  </div>
+  
+  <script type="text/javascript">
+    var data4Vue = {
+      heros:  [],
+      hero4Add: {id: 0, name: '', hp: '0'},
+      pagination: {}
+    };
+
+    //ViewModel
+    var vue = new Vue({
+      el: "#app",       //el表示挂载点(挂载在id为app的元素内部)
+      data: data4Vue,   //data表示数据
+      mounted: function(){    //mounted　表示这个 Vue 对象加载成功了
+        this.list(1);
+      },
+      //methods 这个vue对象的所有方法
+      methods: {
+
+        list: function(start){
+          var url = "heroes?start="+start;
+          axios.get(url).then(function(response){  //axios使用get请求
+            vue.pagination = response.data;
+            console.log(vue.pagination);
+            vue.heros = response.data.list;
+          })
+        },
+
+        add: function(event){       //增
+          var url = "heroes";
+          axios.post(url,this.hero4Add).then(function(response){
+            vue.list(1);
+            vue.hero4Add = {id: 0 , name: '', hp: '0'}
+          });
+        },
+
+        deleteHero: function(id){   //删
+          var url = "heroes/"+id;
+          axios.detete(url).then(function(response) {
+            vue.list(1);
+          }); 
+        },
+
+        jump: function(page) {          //根据页数跳转
+          if('first'==page && 1!=vue.pagination.pageNum)  //现在所在页码不是1，且指定跳转到first页
+            vue.list(1);
+          else if('pre'==page && vue.pagination.hasPreviousPage)
+            vue.list(vue.pagination.prePage);     //跳转到前一页
+          else if('next'==page && vue.pagination.hasNextPage)
+            vue.list(vue.pagination.nextPage);    //跳转到在下一页
+          else if('last'==page && vue.pagination.pageNum!=vue.pagination.pages)
+            vue.list(vue.pagination.pages);       //跳转到最后一页
+        },
+
+        jumpByNumber: function(start) {     //跳转到指定页数
+          if(start!=vue.pagination.pageNum)
+            vue.list(start);
+        }
+
+      }
+    });
+
+  </script>
+  
+</body>
+</html>
